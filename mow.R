@@ -1,5 +1,9 @@
 library("ggplot2")
 
+
+TRAIN_DATA_PERCENT = 85
+
+
 loadData <- function() {
     # TODO - chyba wypada połączyć 2 tabele ale copy-paste nie działa
     d1=read.table("../student-alcohol-consumption/student-mat.csv",sep=",",header=TRUE)
@@ -34,5 +38,15 @@ drawNoClustered(data)
 data = clustered(data)
 
 drawClustered(data)
+
+# FIXME - w tych dataframeach zostaje kolumna "row.names". Należy ją usunąć
+trainDataIndices = sample(nrow(data), nrow(data) * TRAIN_DATA_PERCENT / 100)
+trainData = data[trainDataIndices, ]
+trainData = trainData[, -1 * grep("is_alcoholic", colnames(trainData))]
+testData = data[-1 * trainDataIndices, ]
+
+
+
+
 
 
