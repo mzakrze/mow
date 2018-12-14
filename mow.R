@@ -32,13 +32,16 @@ drawClustered <- function(data){
     scatterplot
 }
 
-data <- loadData()
+allData <- loadData()
 
-drawNoClustered(data)
+drawNoClustered(allData)
 
-data = clustered(data)
+allData = clustered(allData)
 
-drawClustered(data)
+drawClustered(allData)
+
+data = allData[, -1 * grep("Dalc", colnames(allData))]
+data = data[, -1 * grep("Walc", colnames(data))]
 
 trainDataIndices = sample(nrow(data), nrow(data) * TRAIN_DATA_PERCENT / 100)
 
@@ -64,5 +67,5 @@ stopifnot(randomForestResult$type == 'classification')
 
 str(randomForestResult)
 
-# TODO - coś jest chyba nie tak, bo 100% skuteczności xD
+print(predict(randomForestResult, testDataInput, type = 'prob'))
 predict(randomForestResult, testDataInput) == testDataResponse
