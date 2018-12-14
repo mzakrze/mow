@@ -1,5 +1,6 @@
 library("ggplot2")
 library("randomForest")
+library("pROC")
 
 TRAIN_DATA_PERCENT = 85
 
@@ -67,5 +68,8 @@ stopifnot(randomForestResult$type == 'classification')
 
 str(randomForestResult)
 
-print(predict(randomForestResult, testDataInput, type = 'prob'))
-predict(randomForestResult, testDataInput) == testDataResponse
+expected = testDataResponse
+actual = predict(randomForestResult, testDataInput, type = 'prob')[, 2]
+
+jpeg('build/roc_analysis.jpg')
+plot(roc(expected, actual), print.auc=TRUE)
