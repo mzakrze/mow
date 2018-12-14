@@ -40,7 +40,6 @@ data = clustered(data)
 
 drawClustered(data)
 
-# FIXME - w tych dataframeach zostaje kolumna "row.names". Należy ją usunąć
 trainDataIndices = sample(nrow(data), nrow(data) * TRAIN_DATA_PERCENT / 100)
 
 trainData = data[trainDataIndices, ]
