@@ -4,6 +4,63 @@ library("pROC")
 
 TRAIN_DATA_PERCENT = 85
 
+Operation = list(RUN_SINGLE = "run_single", SEARCH_PARAMS = "search_params")
+Save = list(YES = TRUE, NO = FALSE)
+
+args <- commandArgs(trailingOnly = TRUE)
+
+operation = NULL
+save_flag = FALSE
+i <- 1
+while( i <= length(args)) {
+    if("-o" == args[i] || "--operation" == args[i]){
+        if(args[i + 1] == Operation$RUN_SINGLE) {
+            operation = Operation$RUN_SINGLE
+        } else if(args[i + 1] == Operation$SEARCH_PARAMS) {
+            operation = Operation$SEARCH_PARAMS
+        } else {
+            stop(paste("Invalid '--operation' argument: ", args[i + 1]))
+        }
+        i = i + 2
+        next
+    }
+
+    if("-s" == args[i] || '--save' == args[i]) {
+        save_flag = Save$YES
+        i = i + 1
+        next
+    }
+
+    stop(paste("Dont understand command ", toString(args[i]), ". Exiting..."))
+}
+
+assertConfigOk <- function(){
+    checkTuningParam <- function(var_name, var) {
+        if(!exists(var_name) || is.null(var)) {
+            stop(paste("Invalid config file for variable: ", var_name))
+        } 
+        if(operation == Operation$RUN_SINGLE && length(vec) > 1){
+            stop(paste("Illegal value of ", name, " for 'run_single' mode"))
+        }
+    }
+    check <- function(var_name, var) {
+        if(!exists(var_name) || is.null(var)) {
+            stop(paste("Invalid config file for variable: ", var_name))
+        } 
+        if(length(var) != 1) {
+            stop(paste("Invalid config file for variable: ", var_name))
+        }
+    }
+    check("train_data_percent", train_data_percent)
+    check("repeat_each", repeat_each)
+    checkTuningParam("randomForest.mtry", randomForest.mtry)
+    checkTuningParam("randomForest.replace", randomForest.replace)
+    checkTuningParam("randomForest.maxnodes", randomForest.maxnodes)
+    checkTuningParam("randomForest.nodesize", randomForest.nodesize)
+}
+
+source('config.R')
+assertConfigOk()
 
 loadData <- function() {
     # TODO - chyba wypada połączyć 2 tabele ale copy-paste nie działa
