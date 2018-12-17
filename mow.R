@@ -1,8 +1,7 @@
 library("ggplot2")
 library("randomForest")
 library("pROC")
-
-
+library(ROCR)
 
 
 
@@ -41,6 +40,10 @@ readParams <- function(){
         stop(paste("Dont understand command ", toString(args[i]), ". Exiting..."))
     }
 
+    if(is.null(operation)){
+        stop("No 'operation' argument given")
+    }
+
     list(operation = operation, save_flag = save_flag)
 }
 
@@ -51,7 +54,7 @@ loadConfig <- function(){
             stop(paste("Invalid config file for variable: ", var_name))
         } 
         if(params$operation == Operation$SINGLE_RUN && length(var) > 1){
-            stop(paste("Illegal value of ", name, " for 'single_run' mode"))
+            stop(paste("Illegal value of ", var_name, " for 'single_run' mode"))
         }
     }
     check <- function(var_name, var) {
@@ -71,6 +74,7 @@ loadConfig <- function(){
     check("train_data_percent", train_data_percent)
     check("repeat_each", repeat_each)
     checkTuningParam("randomForest.mtry", randomForest.mtry)
+    checkTuningParam("randomForest.ntree", randomForest.ntree)
     checkTuningParam("randomForest.replace", randomForest.replace)
     checkTuningParam("randomForest.maxnodes", randomForest.maxnodes)
     checkTuningParam("randomForest.nodesize", randomForest.nodesize)
@@ -103,7 +107,6 @@ drawClustered <- function(data){
 
 
 runSingleRunMode <- function(splitData) {
-    # TODO
     trainDataInput = splitData$trainDataInput
     trainDataResponse = splitData$trainDataResponse
     testDataInput = splitData$testDataInput
@@ -112,20 +115,24 @@ runSingleRunMode <- function(splitData) {
     randomForestResult = randomForest(
         x = trainDataInput, 
         y = trainDataResponse, 
-        ntree = 83, 
-        mtry = 9, 
-        replace = TRUE, 
-        nodesize = 10, 
-        maxnodes = 17,
+        ntree = randomForest.ntree, 
+        mtry = randomForest.mtry, 
+        replace = randomForest.replace, 
+        nodesize = randomForest.nodesize, 
+        maxnodes = randomForest.maxnodes,
         keep.forest=TRUE)
-
     stopifnot(randomForestResult$type == 'classification')
 
     expected = testDataResponse
     actual = predict(randomForestResult, testDataInput, type = 'prob')[, 2]
 
-    jpeg('build/roc_analysis.jpg')
+    # TODO - wpisać na obrazku parametry lasu
+    jpeg(paste(result_folder_name, '/roc_analysis.jpg', sep=""))
     plot(roc(expected, actual), print.auc=TRUE)
+
+    # TODO - wpisać na obrazku parametry lasu
+    jpeg(paste(result_folder_name, '/importance_test.jpg', sep=""))
+    varImpPlot(randomForestResult)
 }
 
 
@@ -134,7 +141,44 @@ runSearchParamsMode <- function(splitData) {
     trainDataResponse = splitData$trainDataResponse
     testDataInput = splitData$testDataInput
     testDataResponse = splitData$testDataResponse
-    # TODO
+    
+    best_auc = 0
+    best_params = list(mtry=NULL, ntree=NULL,replace=NULL,maxnodes=NULL,nodesize=NULL)
+    for(mtry in randomForest.mtry) {
+        for(ntree in randomForest.ntree) {
+            for(replace in randomForest.replace) {
+                for(maxnodes in randomForest.maxnodes) {
+                    for(nodesize in randomForest.nodesize) {
+                        randomForestResult = randomForest(
+                            x = trainDataInput, 
+                            y = trainDataResponse, 
+                            ntree = ntree, 
+                            mtry = mtry, 
+                            replace = replace, 
+                            nodesize = nodesize, 
+                            maxnodes = maxnodes,
+                            keep.forest=TRUE)
+                        stopifnot(randomForestResult$type == 'classification')
+
+                        expected = testDataResponse
+                        actual = predict(randomForestResult, testDataInput, type = 'prob')[, 2]
+
+                        pred = prediction(actual, expected)
+
+                        perf = performance(pred,"auc") 
+
+                        auc = perf@y.values[[1]]
+
+                        if(best_auc < auc) {
+                            best_auc = auc
+                            best_params = list(mtry=mtry, ntree=ntree,replace=replace,maxnodes=maxnodes,nodesize=nodesize)
+                            print(paste('new best:', best_auc))
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -196,6 +240,10 @@ allDataClustered = clustered(allData)
 drawClustered(allDataClustered)
 
 splitData = splitData(allDataClustered)
+
+# FIXME
+# Zwracam uwagę, że ze względu na losowość nie można porównywać wyników pojedynczego uruchomienia lasu losowego.
+# pewnie trzeba odpalić kilka(powiedzmy 10) razy i AUC uśrednić, ale nie wiem na pewno
 
 if(params$operation == Operation$SINGLE_RUN) {
     runSingleRunMode(splitData)

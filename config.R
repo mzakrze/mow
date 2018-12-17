@@ -6,10 +6,10 @@ repeat_each = 10
 
 # tuning parameters for the Random Forest algorithm. 
 # see: https://cran.r-project.org/web/packages/randomForest/randomForest.pdf 
-randomForest.mtry = 17
-randomForest.ntree = 1:10
+randomForest.mtry = 1:10
+randomForest.ntree = 3:10
 randomForest.replace = c(TRUE, FALSE)
-randomForest.maxnodes = 10
-randomForest.nodesize = 10
+randomForest.maxnodes = 10:15
+randomForest.nodesize = 10:15
 
 
