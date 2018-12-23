@@ -69,7 +69,13 @@ loadConfig <- function(){
     ###
     #  Loading config file
     ###
-    source('config.R')
+    
+    if(params$operation == Operation$SINGLE_RUN) {
+      source('config_single.R')
+    }
+    if(params$operation == Operation$SEARCH_PARAMS){
+      source('config_search_params.R')
+    }
 
     check("train_data_percent", train_data_percent)
     check("repeat_each", repeat_each)
@@ -83,7 +89,7 @@ loadConfig <- function(){
 
 loadData <- function() {
     # TODO - chyba wypada połączyć 2 tabele ale copy-paste nie działa
-    d1=read.table("../student-alcohol-consumption/student-mat.csv",sep=",",header=TRUE)
+    d1=read.table("./student-alcohol-consumption/student-mat.csv",sep=",",header=TRUE)
     d1
 }
 
