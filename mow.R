@@ -71,7 +71,7 @@ loadConfig <- function(){
     ###
     
     if(params$operation == Operation$SINGLE_RUN) {
-      source('config_single.R')
+      source('config_single_run.R')
     }
     if(params$operation == Operation$SEARCH_PARAMS){
       source('config_search_params.R')
@@ -189,7 +189,12 @@ runSearchParamsMode <- function(splitData) {
 
 
 saveConfigToFile <- function() {
-    file.copy(from='config.R', to=result_folder_name, 
+    config_filename <- if(params$operation == Operation$SINGLE_RUN) {
+      'config_single_run.R'
+    } else if(params$operation == Operation$SEARCH_PARAMS){
+      'config_search_params.R'
+    }
+    file.copy(from=config_filename, to=result_folder_name, 
           overwrite = TRUE, recursive = FALSE, 
           copy.mode = TRUE)
 }
