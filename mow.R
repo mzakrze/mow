@@ -24,6 +24,8 @@ readParams <- function(){
                 operation = Operation$SINGLE_RUN
             } else if(args[i + 1] == Operation$SEARCH_PARAMS) {
                 operation = Operation$SEARCH_PARAMS
+            } else if(args[i + 1] == Operation$AUC_PLOT) {
+              operation = Operation$AUC_PLOT
             } else {
                 stop(paste("Invalid '--operation' argument: ", args[i + 1]))
             }
@@ -75,6 +77,10 @@ loadConfig <- function(){
     }
     if(params$operation == Operation$SEARCH_PARAMS){
       source('config_search_params.R')
+    }
+    
+    if(params$operation == Operation$AUC_PLOT){
+      source('config_auc_plot.R')
     }
 
     check("train_data_percent", train_data_percent)
@@ -151,15 +157,24 @@ runAucPlot<- function(splitData) {
   trainDataResponse = splitData$trainDataResponse
   testDataInput = splitData$testDataInput
   testDataResponse = splitData$testDataResponse
+  input <- c()
+  input['ntree'] =  randomForest.ntree
+  input['mtry'] =  randomForest.mtry
+  input['replace'] =  randomForest.replace
+  input['nodesize'] =  randomForest.nodesize
+  input['maxnodes'] =  randomForest.maxnodes
+  
   alg <- Vectorize(function(x, y) {
+    input[xArgName] = x
+    input[yArgName] = y
     randomForestResult = randomForest(
       x = trainDataInput, 
       y = trainDataResponse, 
-      ntree = randomForest.ntree, 
-      mtry = randomForest.mtry, 
-      replace = randomForest.replace, 
-      nodesize = randomForest.nodesize, 
-      maxnodes = randomForest.maxnodes,
+      ntree = input['ntree'],
+      mtry = input['mtry'],
+      replace = input['replace'],
+      nodesize = input['nodesize'], 
+      maxnodes = input['maxnodes'],
       keep.forest=TRUE)
     stopifnot(randomForestResult$type == 'classification')
     expected = testDataResponse
@@ -170,16 +185,16 @@ runAucPlot<- function(splitData) {
     perf = performance(pred,"auc") 
     
     auc = perf@y.values[[1]]
-     auc
+    auc
   })
   
   jpeg(paste(result_folder_name, '/xd.jpg', sep=""))
-  x <- seq(0, 10, length= 30)
-  y <- x
+  x <- xArg
+  y <- yArg
   z <- outer(x, y, alg)
   z[is.na(z)] <- 1
   op <- par(bg = "white")
-  persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue")
+  persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue", xlab = xArgName, ylab = yArgName, zlab= "AUC", ticktype="detailed")
   
 }
 
@@ -274,7 +289,7 @@ resultFolderName <- function() {
 ###############      Main Function               #################
 ##################################################################
 
-Operation = list(SINGLE_RUN = "single_run", SEARCH_PARAMS = "search_params")
+Operation = list(SINGLE_RUN = "single_run", SEARCH_PARAMS = "search_params", AUC_PLOT = "auc_plot")
 
 params <- readParams() # TODO - odznaczyć załadowane w ten sposób zmienne od "reszty"
 loadConfig()
@@ -298,9 +313,11 @@ splitData = splitData(allDataClustered)
 # pewnie trzeba odpalić kilka(powiedzmy 10) razy i AUC uśrednić, ale nie wiem na pewno
 
 if(params$operation == Operation$SINGLE_RUN) {
-  runAucPlot(splitData)
+  runSingleRunMode(splitData)
 } else if(params$operation == Operation$SEARCH_PARAMS) {
     runSearchParamsMode(splitData)
+} else if(params$operation == Operation$AUC_PLOT) {
+  runAucPlot(splitData)
 } else {
     stop("Invalid operation")
 }
