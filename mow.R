@@ -146,6 +146,43 @@ runSingleRunMode <- function(splitData) {
 }
 
 
+runAucPlot<- function(splitData) {
+  trainDataInput = splitData$trainDataInput
+  trainDataResponse = splitData$trainDataResponse
+  testDataInput = splitData$testDataInput
+  testDataResponse = splitData$testDataResponse
+  alg <- Vectorize(function(x, y) {
+    randomForestResult = randomForest(
+      x = trainDataInput, 
+      y = trainDataResponse, 
+      ntree = randomForest.ntree, 
+      mtry = randomForest.mtry, 
+      replace = randomForest.replace, 
+      nodesize = randomForest.nodesize, 
+      maxnodes = randomForest.maxnodes,
+      keep.forest=TRUE)
+    stopifnot(randomForestResult$type == 'classification')
+    expected = testDataResponse
+    actual = predict(randomForestResult, testDataInput, type = 'prob')[, 2]
+    
+    pred = prediction(actual, expected)
+    
+    perf = performance(pred,"auc") 
+    
+    auc = perf@y.values[[1]]
+     auc
+  })
+  
+  jpeg(paste(result_folder_name, '/xd.jpg', sep=""))
+  x <- seq(0, 10, length= 30)
+  y <- x
+  z <- outer(x, y, alg)
+  z[is.na(z)] <- 1
+  op <- par(bg = "white")
+  persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue")
+  
+}
+
 runSearchParamsMode <- function(splitData) {
     trainDataInput = splitData$trainDataInput
     trainDataResponse = splitData$trainDataResponse
@@ -261,7 +298,7 @@ splitData = splitData(allDataClustered)
 # pewnie trzeba odpalić kilka(powiedzmy 10) razy i AUC uśrednić, ale nie wiem na pewno
 
 if(params$operation == Operation$SINGLE_RUN) {
-    runSingleRunMode(splitData)
+  runAucPlot(splitData)
 } else if(params$operation == Operation$SEARCH_PARAMS) {
     runSearchParamsMode(splitData)
 } else {
