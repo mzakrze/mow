@@ -58,6 +58,9 @@ loadConfig <- function(){
         if(params$operation == Operation$SINGLE_RUN && length(var) > 1){
             stop(paste("Illegal value of ", var_name, " for 'single_run' mode"))
         }
+        if(params$operation == Operation$AUC_PLOT && length(var) > 1){
+        stop(paste("Illegal value of ", var_name, " for 'auc_plot' mode"))
+        }
     }
     check <- function(var_name, var) {
         if(!exists(var_name) || is.null(var)) {
@@ -73,7 +76,7 @@ loadConfig <- function(){
     ###
     
     if(params$operation == Operation$SINGLE_RUN) {
-      source('config_single_run.R')
+      source('config_single.R')
     }
     if(params$operation == Operation$SEARCH_PARAMS){
       source('config_search_params.R')
@@ -188,7 +191,7 @@ runAucPlot<- function(splitData) {
     auc
   })
   
-  jpeg(paste(result_folder_name, '/xd.jpg', sep=""))
+  jpeg(paste(result_folder_name, '/auc_plot', sep=""))
   x <- xArg
   y <- yArg
   z <- outer(x, y, alg)
@@ -246,7 +249,7 @@ runSearchParamsMode <- function(splitData) {
 
 saveConfigToFile <- function() {
     config_filename <- if(params$operation == Operation$SINGLE_RUN) {
-      'config_single_run.R'
+      'config_single.R'
     } else if(params$operation == Operation$SEARCH_PARAMS){
       'config_search_params.R'
     }
