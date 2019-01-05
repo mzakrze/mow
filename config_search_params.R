@@ -1,7 +1,6 @@
 # how to split data to train and test datasets
 train_data_percent = 15
-# how many times repeat each experiment(train and test model)
-# FIXME - narazie nie wspierane 
+# how many times repeat each random forest run
 repeat_each = 10
 
 # tuning parameters for the Random Forest algorithm. 

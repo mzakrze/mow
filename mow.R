@@ -165,7 +165,6 @@ runSingleRunMode <- function(splitData) {
   dev.off()
 }
 
-
 runAucPlotMode <- function(splitData) {
   trainDataInput = splitData$trainDataInput
   trainDataResponse = splitData$trainDataResponse
@@ -177,8 +176,8 @@ runAucPlotMode <- function(splitData) {
   input['replace'] =  randomForest.replace
   input['nodesize'] =  randomForest.nodesize
   input['maxnodes'] =  randomForest.maxnodes
-  
-  alg <- Vectorize(function(x, y) {
+
+  calc_auc_function <- function(x, y) {
     input[xArgName] = x
     input[yArgName] = y
     randomForestResult = randomForest(
@@ -202,6 +201,14 @@ runAucPlotMode <- function(splitData) {
     
     auc = perf@y.values[[1]]
     auc
+  }
+
+  alg <- Vectorize(function(x, y) {
+    acc = 0.0
+    for (i in 1:repeat_each) {
+      acc = acc + calc_auc_function(x, y)
+    }
+    acc / repeat_each
   })
   
   jpeg(paste(result_folder_name, '/auc_plot.jpg', sep = ""))
@@ -289,12 +296,19 @@ runSearchParamsMode <- function(splitData) {
       maxnodes = last(randomForest.maxnodes),
       nodesize = last(randomForest.nodesize)
     )
-  
+  repeat_and_average <- function(x) {
+    acc = 0.0
+    for (i in 1:repeat_each) {
+      acc = acc + fitnessFunc(x)
+    }
+    acc / repeat_each
+  }
+
   # Run the genetic algorithm
   result <-
     ga(
       type = "real-valued",
-      fitness = fitnessFunc,
+      fitness = repeat_and_average,
       names = names(theta_min),
       lower = theta_min,
       upper = theta_max,
@@ -394,10 +408,6 @@ allDataClustered = clustered(allData)
 drawClustered(allDataClustered)
 
 splitData = splitData(allDataClustered)
-
-# FIXME
-# Zwracam uwagę, że ze względu na losowość nie można porównywać wyników pojedynczego uruchomienia lasu losowego.
-# pewnie trzeba odpalić kilka(powiedzmy 10) razy i AUC uśrednić, ale nie wiem na pewno
 
 if (params$operation == Operation$SINGLE_RUN) {
   runSingleRunMode(splitData)
