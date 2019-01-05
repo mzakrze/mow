@@ -13,6 +13,6 @@ randomForest.maxnodes = 10
 randomForest.nodesize = 10
 
 xArgName = "mtry"
-yArgName = "ntRee"
+yArgName = "ntree"
 xArg = 1:10
 yArg = 3:10

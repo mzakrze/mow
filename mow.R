@@ -5,8 +5,6 @@ library("GA")
 library(ROCR)
 
 
-
-
 readParams <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   
@@ -94,13 +92,13 @@ loadConfig <- function() {
 
 
 loadData <- function() {
-  # TODO - chyba wypada połączyć 2 tabele ale copy-paste nie działa
-  d1 = read.table(
-    "./student-alcohol-consumption/student-mat.csv",
-    sep = ",",
-    header = TRUE
-  )
-  d1
+  student_PK = c("school","sex","age","address","famsize","Pstatus","Medu","Fedu","Mjob","Fjob","reason","nursery","internet")
+  d1=read.table("./student-alcohol-consumption/student-mat.csv",sep=",",header=TRUE)
+  d2=read.table("./student-alcohol-consumption/student-por.csv",sep=",",header=TRUE)
+  d3=rbind(d1,d2)
+  indices = duplicated(d3[, student_PK])
+  d4 = d3[-indices,]
+  d4
 }
 
 
@@ -168,7 +166,7 @@ runSingleRunMode <- function(splitData) {
 }
 
 
-runAucPlot <- function(splitData) {
+runAucPlotMode <- function(splitData) {
   trainDataInput = splitData$trainDataInput
   trainDataResponse = splitData$trainDataResponse
   testDataInput = splitData$testDataInput
@@ -206,7 +204,7 @@ runAucPlot <- function(splitData) {
     auc
   })
   
-  jpeg(paste(result_folder_name, '/auc_plot', sep = ""))
+  jpeg(paste(result_folder_name, '/auc_plot.jpg', sep = ""))
   x <- xArg
   y <- yArg
   z <- outer(x, y, alg)
@@ -228,69 +226,11 @@ runAucPlot <- function(splitData) {
   
 }
 
-runSearchParamsMode <- function(splitData) {
-  trainDataInput = splitData$trainDataInput
-  trainDataResponse = splitData$trainDataResponse
-  testDataInput = splitData$testDataInput
-  testDataResponse = splitData$testDataResponse
-  
-  best_auc = 0
-  best_params = list(
-    mtry = NULL,
-    ntree = NULL,
-    replace = NULL,
-    maxnodes = NULL,
-    nodesize = NULL
-  )
-  for (mtry in randomForest.mtry) {
-    for (ntree in randomForest.ntree) {
-      for (replace in randomForest.replace) {
-        for (maxnodes in randomForest.maxnodes) {
-          for (nodesize in randomForest.nodesize) {
-            randomForestResult = randomForest(
-              x = trainDataInput,
-              y = trainDataResponse,
-              ntree = ntree,
-              mtry = mtry,
-              replace = replace,
-              nodesize = nodesize,
-              maxnodes = maxnodes,
-              keep.forest = TRUE
-            )
-            stopifnot(randomForestResult$type == 'classification')
-            
-            expected = testDataResponse
-            actual = predict(randomForestResult, testDataInput, type = 'prob')[, 2]
-            
-            pred = prediction(actual, expected)
-            
-            perf = performance(pred, "auc")
-            
-            auc = perf@y.values[[1]]
-            
-            if (best_auc < auc) {
-              best_auc = auc
-              best_params = list(
-                mtry = mtry,
-                ntree = ntree,
-                replace = replace,
-                maxnodes = maxnodes,
-                nodesize = nodesize
-              )
-              print(paste('new best:', best_auc))
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
 last <- function(l) {
  l[length(l)] 
 }
 
-runSearchParamsGeneticMode <- function(splitData) {
+runSearchParamsMode <- function(splitData) {
   trainDataInput = splitData$trainDataInput
   trainDataResponse = splitData$trainDataResponse
   testDataInput = splitData$testDataInput
@@ -356,8 +296,8 @@ runSearchParamsGeneticMode <- function(splitData) {
       type = "real-valued",
       fitness = fitnessFunc,
       names = names(theta_min),
-      min = theta_min,
-      max = theta_max,
+      lower = theta_min,
+      upper = theta_max,
       popSize = 50,
       maxiter = 10
     )
@@ -438,7 +378,7 @@ Operation = list(SINGLE_RUN = "single_run",
                  AUC_PLOT = "auc_plot")
 
 params <-
-  readParams() # TODO - odznaczyć załadowane w ten sposób zmienne od "reszty"
+  readParams()
 loadConfig()
 
 result_folder_name = resultFolderName()
@@ -461,10 +401,13 @@ splitData = splitData(allDataClustered)
 
 if (params$operation == Operation$SINGLE_RUN) {
   runSingleRunMode(splitData)
+  print("Run single operation finished with success")
 } else if (params$operation == Operation$SEARCH_PARAMS) {
-  runSearchParamsGeneticMode(splitData)
+  runSearchParamsMode(splitData)
+  print("Search params operation finished with success")
 } else if (params$operation == Operation$AUC_PLOT) {
-  runAucPlot(splitData)
+  runAucPlotMode(splitData)
+  print("AUC plot operation finished with success")
 } else {
   stop("Invalid operation")
 }
