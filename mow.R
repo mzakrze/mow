@@ -313,7 +313,7 @@ runSearchParamsMode <- function(splitData) {
       lower = theta_min,
       upper = theta_max,
       popSize = 50,
-      maxiter = 10
+      maxiter = 100
     )
   x <- result@solution
   
