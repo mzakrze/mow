@@ -329,7 +329,47 @@ runSearchParamsMode <- function(splitData) {
     maxnodes = maxnodes,
     nodesize = nodesize
   )
+
+  rf_params = paste(
+    "ntree=",
+    randomForest.ntree,
+    ", mtry=",
+    randomForest.mtry,
+    ", nodesize=",
+    randomForest.nodesize,
+    ", maxnodes=",
+    randomForest.maxnodes,
+    sep = ""
+  )
   
+  randomForestResult = randomForest(
+    x = trainDataInput,
+    y = trainDataResponse,
+    ntree = ntree,
+    mtry = mtry,
+    replace = replace,
+    nodesize = nodesize,
+    maxnodes = maxnodes,
+    keep.forest = TRUE
+  )
+
+  expected = testDataResponse
+  actual = predict(randomForestResult, testDataInput, type = 'prob')[, 2]
+
+  jpeg(paste(result_folder_name, '/best_params_roc_analysis.jpg', sep = ""))
+  plot(roc(expected, actual), print.auc = TRUE)
+  mtext(rf_params, side = 3)
+  dev.off()
+
+  best_params_content = c(
+    "# best parameters found via genetic algorithm",
+    paste("randomForest.mtry =", mtry),
+    paste("randomForest.ntree =", ntree),
+    paste("randomForest.replace =", replace),
+    paste("randomForest.maxnodes =", maxnodes),
+    paste("randomForest.nodesize =", nodesize))
+
+  writeLines(best_params_content, paste(result_folder_name, "/best_params.R", sep=""))
 }
 
 
